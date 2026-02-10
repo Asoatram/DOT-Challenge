@@ -1,98 +1,236 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Ticketing System API (NestJS + TypeScript)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+REST API untuk aplikasi ticketing helpdesk, seperti aplikasi Zendesk atau Zohodesk.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Challenge backend
 
-## Description
+### a) Minimal 2 operasi CRUD yang saling berkaitan
+Implemented:
+- `Ticket` CRUD (create/read/update/delete)
+- `Category` CRUD
+- `Comment` CRUD
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Relationships:
+- Satu `Category` memiliki hubungan one-to-many `Ticket`.
+- Satu `Ticket` memiliki one-to-many `Comment`.
 
-## Project setup
+ERD:
 
-```bash
-$ npm install
+```mermaid
+erDiagram
+  USER ||--o{ TICKET : requests
+  USER ||--o{ TICKET : assigned_to
+  CATEGORY ||--o{ TICKET : categorizes
+  TICKET ||--o{ COMMENT : has
+  USER ||--o{ COMMENT : writes
+
+  USER {
+    string id PK
+    string name
+    string email
+    string role
+  }
+
+  CATEGORY {
+    string id PK
+    string name
+  }
+
+  TICKET {
+    string id PK
+    string title
+    string description
+    string status
+    string priority
+    string requesterId FK
+    string assigneeId FK
+    string categoryId FK
+  }
+
+  COMMENT {
+    string id PK
+    string body
+    string ticketId FK
+    string authorId FK
+  }
 ```
 
-## Compile and run the project
+### b) Menyimpan data menggunakan database SQL
+- Database: PostgreSQL
+- ORM: Prisma
 
-```bash
-# development
-$ npm run start
+### c) Authentication API menggunakan JWT token
+- Access token dan refresh token disediakan didalam modul `auth` .
+- Endpoint yang terlindung menggunakan `JwtAuthGuard`.
+- Beberapa endpoint menggunakan role permission `RolesGuard` + `@Roles(...)`.
 
-# watch mode
-$ npm run start:dev
+### d) e2e testing untuk token API
+- `test:e2e` script is available.
+- Current e2e suite still basic and should be extended with token-flow scenarios:
+  - register -> login -> access protected endpoint
+  - refresh token
+  - logout and refresh invalidation
 
-# production mode
-$ npm run start:prod
+### e) Pattern project yang digunakan
+Pattern yang digunakan adalah **Modular Monolith**.
+
+### f) Alasan memilih pattern tersebut
+- NestJs mendukung pengmbangan backend menggunakan pola Modular Monolith sebagai default.
+- Setiap fitur memiliki controller, service, dan repositorynya masing-masing.
+- Lebih mudah dikembangkan untuk tim kedepannya dikarenakan setiap modul dapat dimiliki oleh developer masing-masing.
+
+## Penjelasan Pattern
+
+```mermaid
+flowchart TB
+    Client[Client App]
+
+    subgraph API[NestJS Modular Monolith]
+      direction TB
+      Auth[Auth Module]
+      Users[Users Module]
+      Tickets[Tickets Module]
+      Categories[Categories Module]
+      Comments[Comments Module]
+      Common[Common Guards and Decorators]
+      Prisma[Prisma Module]
+    end
+
+    DB[(PostgreSQL)]
+
+    Client -->|HTTP + JWT| API
+    Auth --> Common
+    Users --> Prisma
+    Tickets --> Prisma
+    Categories --> Prisma
+    Comments --> Prisma
+    Tickets --> Categories
+    Comments --> Tickets
+    Prisma -->|SQL| DB
 ```
 
-## Run tests
+### Flow request aplikasi
+
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant CT as Controller
+  participant S as Service
+  participant P as PrismaService
+  participant DB as PostgreSQL
+
+  C->>CT: HTTP request + Bearer token
+  CT->>S: validate DTO + call use-case
+  S->>P: query/command
+  P->>DB: SQL
+  DB-->>P: result
+  P-->>S: mapped data
+  S-->>CT: response payload
+  CT-->>C: JSON response
+```
+
+## Module Structure
+
+```text
+src/
+  auth/
+  users/
+  tickets/
+  categories/
+  comments/
+  prisma/
+  common/
+  utils/
+```
+
+## API Endpoints (Current)
+
+| Method | Path | Auth | Role |
+| --- | --- | --- | --- |
+| `POST` | `/auth/register` | No | Public |
+| `POST` | `/auth/login` | No | Public |
+| `POST` | `/auth/refresh` | Refresh token | Authenticated |
+| `POST` | `/auth/logout` | Refresh token | Authenticated |
+| `GET` | `/api/v1/users/me` | Access token | Semua user yang authenticated  |
+| `POST` | `/api/v1/tickets` | Access token | Semua user yang authenticated |
+| `GET` | `/api/v1/tickets/assigned` | Access token | `ADMIN`, `AGENT` |
+| `GET` | `/api/v1/tickets/all` | Access token | `ADMIN` |
+| `POST` | `/api/v1/tickets/assign` | Access token | `ADMIN` |
+| `PATCH` | `/api/v1/tickets/:id` | Access token | `ADMIN`, `AGENT` |
+| `GET` | `/api/v1/tickets/:id` | Access token | Semua user yang authenticated |
+| `DELETE` | `/api/v1/tickets/:id` | Access token | `ADMIN` |
+| `GET` | `/api/v1/categories` | Access token | Semua user yang authenticated |
+| `GET` | `/api/v1/categories/:id` | Access token | Semua user yang authenticated |
+| `POST` | `/api/v1/categories` | Access token | `ADMIN` |
+| `PATCH` | `/api/v1/categories/:id` | Access token | `ADMIN` |
+| `DELETE` | `/api/v1/categories/:id` | Access token | `ADMIN` |
+| `GET` | `/api/v1/comments` | Access token | Semua user yang authenticated |
+| `GET` | `/api/v1/comments/:id` | Access token | Semua user yang authenticated |
+| `POST` | `/api/v1/comments` | Access token | Semua user yang authenticated |
+| `PATCH` | `/api/v1/comments/:id` | Access token | Owner comment atau `ADMIN` |
+| `DELETE` | `/api/v1/comments/:id` | Access token | Owner comment atau `ADMIN` |
+
+## Local Setup
+
+### 1) Install dependencies
 
 ```bash
-# unit tests
-$ npm run test
+npm install
+```
 
+### 2) Configure environment
+
+```env
+DATABASE_URL="postgresql://postgres:password@localhost:5432/ticketing"
+JWT_ACCESS_SECRET="your_access_secret"
+JWT_REFRESH_SECRET="your_refresh_secret"
+PORT=3000
+```
+
+### 3) Run migrations
+
+```bash
+npx prisma migrate dev
+```
+
+### 4) Optional seed
+
+```bash
+npm run db:seed
+```
+
+### 5) Run app
+
+```bash
+npm run start:dev
+```
+
+## Testing
+
+```bash
 # e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run test:e2e
 ```
 
-## Deployment
+### E2E Prerequisites
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+1. Create test env file:
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+cp .env.test.example .env.test
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+2. Point `DATABASE_URL` in `.env.test` to a dedicated test database.
 
-## Resources
+3. Seed test database so role accounts are available:
 
-Check out a few resources that may come in handy when working with NestJS:
+```bash
+npm run db:seed
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Postman & Swagger
 
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- Postman Collection:
+  `https://www.postman.com/apa-yaa-5616/workspace/dot-internship/collection/37302209-dda77739-b422-4275-a25f-daa49f4e613b?action=share&creator=37302209&active-environment=37302209-c75c4c5d-a437-44c9-9578-fed3eff166e3`
+- Swagger Docs:
+  `http://localhost:3000/docs`
