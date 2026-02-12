@@ -11,7 +11,7 @@ Implemented:
 - `Comment` CRUD
 
 Relationships:
-- Satu `Category` memiliki hubungan one-to-many `Ticket`.
+- Satu `Category` memiliki hubungan one-to-one `Ticket`.
 - Satu `Ticket` memiliki one-to-many `Comment`.
 
 ERD:
@@ -65,11 +65,7 @@ erDiagram
 - Beberapa endpoint menggunakan role permission `RolesGuard` + `@Roles(...)`.
 
 ### d) e2e testing untuk token API
-- `test:e2e` script is available.
-- Current e2e suite still basic and should be extended with token-flow scenarios:
-  - register -> login -> access protected endpoint
-  - refresh token
-  - logout and refresh invalidation
+- jalankan `npm test:e2e` atau cek di postman/swagger 
 
 ### e) Pattern project yang digunakan
 Pattern yang digunakan adalah **Modular Monolith**.
@@ -234,3 +230,5 @@ npm run db:seed
   `https://www.postman.com/apa-yaa-5616/workspace/dot-internship/collection/37302209-dda77739-b422-4275-a25f-daa49f4e613b?action=share&creator=37302209&active-environment=37302209-c75c4c5d-a437-44c9-9578-fed3eff166e3`
 - Swagger Docs:
   `http://localhost:3000/docs`
+## Loom Video:
+`https://www.loom.com/share/1d7e4a8b70ad410698356b119f8141f3`
