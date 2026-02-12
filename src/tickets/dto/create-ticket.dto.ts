@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsString, IsUUID } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateTicketDto {
   @ApiProperty({
@@ -9,13 +9,14 @@ export class CreateTicketDto {
   @IsString()
   title: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     format: 'uuid',
     example: '6dcf0bb9-17f4-4f67-b4e5-f64d1a18b333',
     description: 'User ID assigned to this ticket',
   })
+  @IsOptional()
   @IsUUID()
-  assigneeId: string;
+  assigneeId?: string;
 
   @ApiProperty({
     example: 'I receive an invalid token error on every login attempt.',

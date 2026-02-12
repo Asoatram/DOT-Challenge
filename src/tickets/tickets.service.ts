@@ -117,6 +117,7 @@ export class TicketsService {
           description: createTicketDto.description,
           priority: createTicketDto.priority,
           categoryId: createTicketDto.categoryId,
+          assigneeId: createTicketDto.assigneeId,
           requesterId: requesterId,
           status: 'OPEN',
         },

@@ -33,6 +33,39 @@ Pastikan environment kamu punya variabel:
 4. Untuk endpoint protected biasa (`/api/v1/users/me`, `/api/v1/tickets`, dll), pakai Bearer token `{{accessToken}}`.
 5. Untuk endpoint `POST /auth/refresh` dan `POST /auth/logout`, pakai Bearer token `{{refreshToken}}`.
 
+## Permission (RBAC Matrix)
+
+Legenda:
+
+- `Y`: diizinkan
+- `N`: tidak diizinkan
+- `OWNER`: hanya pemilik resource (author comment)
+
+| Endpoint | ADMIN | AGENT | REQUESTER | Catatan |
+| --- | --- | --- | --- | --- |
+| `POST /auth/register` | Y | Y | Y | Public (tanpa token) |
+| `POST /auth/login` | Y | Y | Y | Public (tanpa token) |
+| `POST /auth/refresh` | Y | Y | Y | Perlu `refreshToken` |
+| `POST /auth/logout` | Y | Y | Y | Perlu `refreshToken` |
+| `GET /api/v1/users/me` | Y | Y | Y | Perlu `accessToken` |
+| `POST /api/v1/tickets` | Y | Y | Y | Perlu `accessToken` |
+| `GET /api/v1/tickets/assigned` | Y | Y | N | Perlu `accessToken` |
+| `GET /api/v1/tickets/all` | Y | N | N | Perlu `accessToken` |
+| `POST /api/v1/tickets/assign` | Y | N | N | Perlu `accessToken` |
+| `GET /api/v1/tickets/:id` | Y | Y | Y | Perlu `accessToken` |
+| `PATCH /api/v1/tickets/:id` | Y | Y | N | Perlu `accessToken` |
+| `DELETE /api/v1/tickets/:id` | Y | N | N | Perlu `accessToken` |
+| `GET /api/v1/categories` | Y | Y | Y | Perlu `accessToken` |
+| `GET /api/v1/categories/:id` | Y | Y | Y | Perlu `accessToken` |
+| `POST /api/v1/categories` | Y | N | N | Perlu `accessToken` |
+| `PATCH /api/v1/categories/:id` | Y | N | N | Perlu `accessToken` |
+| `DELETE /api/v1/categories/:id` | Y | N | N | Perlu `accessToken` |
+| `GET /api/v1/comments` | Y | Y | Y | Perlu `accessToken` |
+| `GET /api/v1/comments/:id` | Y | Y | Y | Perlu `accessToken` |
+| `POST /api/v1/comments` | Y | Y | Y | Perlu `accessToken` |
+| `PATCH /api/v1/comments/:id` | Y | OWNER | OWNER | `ADMIN` bisa semua comment |
+| `DELETE /api/v1/comments/:id` | Y | OWNER | OWNER | `ADMIN` bisa semua comment |
+
 ## Body Login Contoh
 
 ```json
