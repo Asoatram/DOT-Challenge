@@ -36,6 +36,16 @@ export class TicketsController {
     return this.ticketsService.findAll();
   }
 
+  @Get('/me')
+  @UseGuards(JwtAuthGuard)
+  findRequestedByMe(@Req() request, @Query() query: PaginationDto) {
+    return this.ticketsService.findRequestedByMe(
+      request.user.id,
+      query.page,
+      query.limit,
+    );
+  }
+
   @Post('/assign')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')

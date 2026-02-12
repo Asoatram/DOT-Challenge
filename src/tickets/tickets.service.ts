@@ -77,6 +77,38 @@ export class TicketsService {
   );
   }
 
+  async findRequestedByMe(userId: string, page?: number, limit?: number) {
+    return await paginateOffset({
+      page,
+      limit,
+      getItems: (skip, take) =>
+        this.prisma.ticket.findMany({
+          where: { requesterId: userId },
+          orderBy: { createdAt: 'desc' },
+          skip,
+          take,
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            priority: true,
+            status: true,
+            category: true,
+            assignee: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+      getTotal: () => this.prisma.ticket.count({ where: { requesterId: userId } }),
+    });
+  }
+
   async create(createTicketDto: CreateTicketDto, requesterId: string) {
     return await this.prisma.ticket.create({
         data: 

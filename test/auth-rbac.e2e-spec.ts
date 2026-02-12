@@ -65,6 +65,54 @@ describe('Auth + RBAC (e2e)', () => {
     });
   });
 
+  it('GET /api/v1/tickets/me returns 401 without token', async () => {
+    await request(app.getHttpServer()).get('/api/v1/tickets/me').expect(401);
+  });
+
+  it('GET /api/v1/tickets/me returns only tickets requested by authenticated user', async () => {
+    const beforeResponse = await request(app.getHttpServer())
+      .get('/api/v1/tickets/me?page=1&limit=1')
+      .set('Authorization', authHeader(requesterTokens.access_token))
+      .expect(200);
+
+    const beforeTotal = beforeResponse.body.meta.total as number;
+    const myTitle = `${runPrefix} requested-by-requester`;
+    const otherTitle = `${runPrefix} requested-by-agent`;
+
+    await prisma.ticket.create({
+      data: {
+        title: myTitle,
+        description: `${runPrefix} requester ticket`,
+        priority: 'MEDIUM',
+        status: 'OPEN',
+        requesterId: accounts.requester.id,
+      },
+    });
+
+    await prisma.ticket.create({
+      data: {
+        title: otherTitle,
+        description: `${runPrefix} non requester ticket`,
+        priority: 'LOW',
+        status: 'OPEN',
+        requesterId: accounts.agent.id,
+      },
+    });
+
+    const response = await request(app.getHttpServer())
+      .get('/api/v1/tickets/me?page=1&limit=100')
+      .set('Authorization', authHeader(requesterTokens.access_token))
+      .expect(200);
+
+    expect(response.body).toHaveProperty('items');
+    expect(response.body).toHaveProperty('meta');
+    expect(response.body.meta.total).toBe(beforeTotal + 1);
+
+    const titles = response.body.items.map((ticket) => ticket.title);
+    expect(titles).toContain(myTitle);
+    expect(titles).not.toContain(otherTitle);
+  });
+
   it('GET /api/v1/tickets/all allows ADMIN', async () => {
     const response = await request(app.getHttpServer())
       .get('/api/v1/tickets/all')
