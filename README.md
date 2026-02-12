@@ -11,7 +11,7 @@ Implemented:
 - `Comment` CRUD
 
 Relationships:
-- Satu `Category` memiliki hubungan one-to-many `Ticket`.
+- Satu `Category` memiliki hubungan one-to-one `Ticket`.
 - Satu `Ticket` memiliki one-to-many `Comment`.
 
 ERD:
@@ -65,11 +65,7 @@ erDiagram
 - Beberapa endpoint menggunakan role permission `RolesGuard` + `@Roles(...)`.
 
 ### d) e2e testing untuk token API
-- `test:e2e` script is available.
-- Current e2e suite still basic and should be extended with token-flow scenarios:
-  - register -> login -> access protected endpoint
-  - refresh token
-  - logout and refresh invalidation
+- jalankan `npm test:e2e` atau cek di postman/swagger 
 
 ### e) Pattern project yang digunakan
 Pattern yang digunakan adalah **Modular Monolith**.
