@@ -230,3 +230,5 @@ npm run db:seed
   `https://www.postman.com/apa-yaa-5616/workspace/dot-internship/collection/37302209-dda77739-b422-4275-a25f-daa49f4e613b?action=share&creator=37302209&active-environment=37302209-c75c4c5d-a437-44c9-9578-fed3eff166e3`
 - Swagger Docs:
   `http://localhost:3000/docs`
+## Loom Video:
+`https://www.loom.com/share/1d7e4a8b70ad410698356b119f8141f3`
