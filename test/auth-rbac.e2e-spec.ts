@@ -164,6 +164,76 @@ describe('Auth + RBAC (e2e)', () => {
       .expect(403);
   });
 
+  it('PATCH /api/v1/tickets/:id forbids AGENT when ticket is not assigned to them', async () => {
+    const ticket = await prisma.ticket.create({
+      data: {
+        title: `${runPrefix} update-forbidden`,
+        description: `${runPrefix} agent should not update this`,
+        priority: 'MEDIUM',
+        status: 'OPEN',
+        requesterId: accounts.requester.id,
+        assigneeId: accounts.admin.id,
+      },
+    });
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/tickets/${ticket.id}`)
+      .set('Authorization', authHeader(agentTokens.access_token))
+      .send({ status: 'IN_PROGRESS' })
+      .expect(403);
+
+    const ticketAfter = await prisma.ticket.findUnique({
+      where: { id: ticket.id },
+      select: { status: true },
+    });
+
+    expect(ticketAfter?.status).toBe('OPEN');
+  });
+
+  it('PATCH /api/v1/tickets/:id allows AGENT when ticket is assigned to them', async () => {
+    const ticket = await prisma.ticket.create({
+      data: {
+        title: `${runPrefix} update-allowed-agent`,
+        description: `${runPrefix} agent can update this`,
+        priority: 'MEDIUM',
+        status: 'OPEN',
+        requesterId: accounts.requester.id,
+        assigneeId: accounts.agent.id,
+      },
+    });
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/v1/tickets/${ticket.id}`)
+      .set('Authorization', authHeader(agentTokens.access_token))
+      .send({ status: 'IN_PROGRESS' })
+      .expect(200);
+
+    expect(response.body.id).toBe(ticket.id);
+    expect(response.body.status).toBe('IN_PROGRESS');
+  });
+
+  it('PATCH /api/v1/tickets/:id allows ADMIN even when ticket is assigned to another user', async () => {
+    const ticket = await prisma.ticket.create({
+      data: {
+        title: `${runPrefix} update-allowed-admin`,
+        description: `${runPrefix} admin can update this`,
+        priority: 'LOW',
+        status: 'OPEN',
+        requesterId: accounts.requester.id,
+        assigneeId: accounts.agent.id,
+      },
+    });
+
+    const response = await request(app.getHttpServer())
+      .patch(`/api/v1/tickets/${ticket.id}`)
+      .set('Authorization', authHeader(adminTokens.access_token))
+      .send({ status: 'RESOLVED' })
+      .expect(200);
+
+    expect(response.body.id).toBe(ticket.id);
+    expect(response.body.status).toBe('RESOLVED');
+  });
+
   it('POST /api/v1/categories forbids REQUESTER', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/categories')

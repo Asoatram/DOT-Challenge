@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -163,7 +163,28 @@ export class TicketsService {
   });
     }
 
-  async update(id: string, updateTicketDto: UpdateTicketDto) {
+  async update(
+    id: string,
+    updateTicketDto: UpdateTicketDto,
+    actor: { id: string; role: string },
+  ) {
+    if (actor.role === 'AGENT') {
+      const ticket = await this.prisma.ticket.findUnique({
+        where: { id },
+        select: { assigneeId: true },
+      });
+
+      if (!ticket) {
+        throw new NotFoundException('Ticket not found');
+      }
+
+      if (ticket.assigneeId !== actor.id) {
+        throw new ForbiddenException(
+          'Agents can only update tickets assigned to them',
+        );
+      }
+    }
+
     const data: Prisma.TicketUncheckedUpdateInput = {};
 
     if (updateTicketDto.title !== undefined) data.title = updateTicketDto.title;

@@ -71,8 +71,8 @@ export class TicketsController {
   @UseGuards(JwtAuthGuard,RolesGuard)
   @Roles('ADMIN', 'AGENT')
   @ApiBody({ type: UpdateTicketDto })
-  update(@Param('id') id: string, @Body() updateTicketDto: UpdateTicketDto) {
-    return this.ticketsService.update(id, updateTicketDto);
+  update(@Param('id') id: string, @Req() request, @Body() updateTicketDto: UpdateTicketDto) {
+    return this.ticketsService.update(id, updateTicketDto, request.user);
   }
 
   
